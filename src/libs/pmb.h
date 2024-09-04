@@ -7,3 +7,8 @@
 
 typedef struct ProcessMapBlock ProcessMapBlock;
 
+ProcessMapBlock* create_process_map_block();
+
+void add_process_to_map_block(ProcessMapBlock* pmb, pid_t pid, char* command);
+
+void destroy_process_map_block(ProcessMapBlock* pmb);
