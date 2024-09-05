@@ -7,4 +7,4 @@ SRC = $(wildcard $(SRC_DIR)/*.c $(SRC_DIR)/code/*.c)
 all:
 	$(CC) $(CFLAGS) -o $(EXEC) $(SRC)
 clean:
-	rm -f $(OBJ_DIR)/*.o $(EXEC)
+	rm -f $(EXEC)
