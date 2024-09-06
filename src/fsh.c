@@ -4,17 +4,56 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <signal.h>
 #include "libs/lib.h"
 #include "libs/pmb.h"
 
+ProcessMapBlock *global_pmb;
+
+void handle_signal(int signum) {
+    // Encontrar o processo pai (ou o processo que gerencia os processos filhos)
+    // e enviar o sinal a todos os processos filhos.
+    printf("Signal %d received\n", signum);
+    kill_all_processes(global_pmb, signum);
+    exit(0);
+}
+
+void handle_sigcont(int signum) {
+    printf("Signal %d received\n", signum);
+    printf("Continuing from where it was left off...\n");
+    fflush(stdout);
+    return;
+}
+
+void handle_sigint(int signum) {
+    printf("Signal %d received\n", signum);
+    printf("Do you really want to exit? (y/n) ");
+    char c;
+    scanf("%c", &c);
+    if (c == 'y') {
+        printf("Exiting...\n");
+        // kill_all_processes(global_pmb, signum);
+        exit(0);
+    }
+    printf("Continuing...\n");
+    printf("fsh> ");
+    fflush(stdout);
+    return;
+}
+
 int main(int argc, char *argv[]) {
+    signal(SIGINT, handle_sigint); // Interrompe
+    signal(SIGTERM, handle_signal); // Termina
+    signal(SIGSTOP, handle_signal); // Suspende
+    signal(SIGCONT, handle_sigcont); // Continua
+
     while (true) {
         printf("fsh> ");
         char **commands = read_commands_stdin();
-        ProcessMapBlock *pmb = create_process_map_block();
+        global_pmb = create_process_map_block();
         for (int i = 0; *commands; i++) {
             pid_t pid = fork();
-            add_process_to_map_block(pmb, pid, *commands);
+            add_process_to_map_block(global_pmb, pid, *commands);
             char *command = malloc(strlen(*commands) + 1);
             strcpy(command, *commands);
 
@@ -54,7 +93,10 @@ int main(int argc, char *argv[]) {
         int fd = open("/dev/tty", O_WRONLY);
         dup2(fd, STDOUT_FILENO);
         close(fd);
+        clear_process_map_block(global_pmb);
+        fflush(stdout);
     }
+    destroy_process_map_block(global_pmb);
 
     return 0;
 }
