@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <signal.h>
 
 struct ProcessMapBlock {
     pid_t* pids;
@@ -26,8 +27,23 @@ void add_process_to_map_block(ProcessMapBlock* pmb, pid_t pid, char* command) {
     pmb->size++;
 }
 
+void kill_all_processes(ProcessMapBlock* pmb, int signum) {
+    printf("Killing all processes\n");
+    for (int i = 0; i < pmb->size; i++) {
+        kill(pmb->pids[i], signum);
+    }
+}
+
 void destroy_process_map_block(ProcessMapBlock* pmb) {
     free(pmb->pids);
     free(pmb->commands);
     free(pmb);
+}
+
+void clear_process_map_block(ProcessMapBlock* pmb) {
+    for (int i = 0; i < pmb->size; i++) {
+        pmb->pids[i] = 0;
+        // free(pmb->commands[i]);
+    }
+    pmb->size = 0;
 }
