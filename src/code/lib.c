@@ -24,3 +24,20 @@ char **read_commands_stdin() {
 
     return commands;
 }
+
+char **get_args_execvp(char *command) {
+    char **args = malloc((MAX_ARGS + 1) * sizeof(char *));
+
+    int i = 0;
+    for (char *c = strtok(command, " "); c; c = strtok(NULL, " ")) {
+        args[i] = malloc(strlen(c) + 1);
+        if (c[0] == ' ')
+            c++;
+        if (c[strlen(c) - 1] == '\n')
+            c[strlen(c) - 1] = '\0';
+        args[i++] = c;
+    }
+    args[i] = NULL;
+
+    return args;
+}

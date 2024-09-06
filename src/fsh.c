@@ -14,10 +14,14 @@ int main(int argc, char *argv[]) {
         for (int i = 0; *commands; i++) {
             pid_t pid = fork();
             add_process_to_map_block(pmb, pid, *commands);
-            
+            char *command = malloc(strlen(*commands) + 1);
+            strcpy(command, *commands);
+
+            char **args = get_args_execvp(command);
+
             if (!i) {
                 if (!pid) {
-                    system(*commands);
+                    execvp(args[0], args);
                     exit(0);
                 }
                 commands++;
@@ -27,10 +31,8 @@ int main(int argc, char *argv[]) {
             
             if (!pid) {
                 strcat(*commands, " &");
-                system(*commands);
+                execvp(args[0], args);
                 // create another child and run the same command
-                // the command running in background terminates after the parent prints the prompt
-                // change system to exec ?
                 exit(0);
             }
             commands++;
