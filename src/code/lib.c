@@ -1,5 +1,8 @@
 #include "../libs/lib.h"
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
 
 char **read_commands_stdin() {
     char *line = NULL;
