@@ -15,8 +15,8 @@ struct ProcessMapBlock {
 
 ProcessMapBlock* create_process_map_block() {
     ProcessMapBlock* pmb = malloc(sizeof(ProcessMapBlock));
-    pmb->pids = malloc(MAX_COMMANDS * sizeof(pid_t));
-    pmb->commands = malloc(MAX_COMMANDS * sizeof(char*));
+    pmb->pids = malloc(MAX_PROCESSES * sizeof(pid_t));
+    pmb->commands = malloc(MAX_PROCESSES * sizeof(char*));
     pmb->size = 0;
     return pmb;
 }
@@ -27,10 +27,48 @@ void add_process_to_map_block(ProcessMapBlock* pmb, pid_t pid, char* command) {
     pmb->size++;
 }
 
+void debug_process_map_block(ProcessMapBlock* pmb) {
+    printf("ProcessMapBlock: %p\n", pmb);
+    printf("Size: %d\n", pmb->size);
+    for (int i = 0; i < pmb->size; i++) {
+        printf("PID: %d\n", pmb->pids[i]);
+        printf("Command: %s\n---\n", pmb->commands[i]);
+    }
+}
+
+void kill_one_process(ProcessMapBlock* pmb, pid_t pid, int signum) {
+    if (pmb == NULL) {
+        return;
+    }
+    for (int i = 0; i < pmb->size; i++) {
+        if (pmb->pids[i] == pid) {
+            printf("Killing process %d :::: %s\n", pmb->pids[i], pmb->commands[i]);
+            kill(pmb->pids[i], signum);
+            pmb->pids[i] = ALREADY_KILLED;
+            return;
+        }
+    }
+    printf("Process %d not found\n", pid);
+}
+
 void kill_all_processes(ProcessMapBlock* pmb, int signum) {
     printf("Killing all processes\n");
-    for (int i = 0; i < pmb->size; i++) {
+    if (pmb == NULL){ return;}
+    int count = 0;
+    int i = 0;
+    for (i = 0; i < pmb->size; i++) {
+        if (pmb->pids[i] == ALREADY_KILLED) {
+            printf("Process %d already killed\n", pmb->pids[i]);
+            continue;
+        }
+        printf("Killing process %d :::: %s\n", pmb->pids[i], pmb->commands[i]);
         kill(pmb->pids[i], signum);
+        count++;
+    }
+    if (count == 0) {
+        printf("No processes to kill\n");
+    } else {
+        printf("Killed %d processes\n", count);
     }
 }
 
