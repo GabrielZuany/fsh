@@ -61,13 +61,14 @@ int main(int argc, char *argv[]) {
 
             if (!i) { // if it's the first command
                 if (!pid) { // if it's the child
-                    execvp(args[0], args);
+                    if (execvp(args[0], args) < 0)
+                        printf("fsh: command not found\n");
                     exit(0);
                 }
                 commands++;
                 wait(NULL); // wait for the child to finish
                 continue; // skip the rest of the loop
-            }else{
+            } else {
                 // redirect the stdout to /dev/null for the second command and onwards
                 int fd = open("/dev/null", O_WRONLY);
                 dup2(fd, STDOUT_FILENO);
@@ -76,17 +77,26 @@ int main(int argc, char *argv[]) {
 
             // second command and onwards will be run in the background and create another child
             // remeber the fsh has a built-in bug! The processess create a child process that runs the same command
-            strcat(*commands, " &");
             if (!pid) { // if it's the child
                 // strcat(*commands, " &");
-                execvp(args[0], args);
+                if (execvp(args[0], args) < 0)
+                    printf("fsh: command not found\n");
+
+                pid_t bug_pid = fork();
+                if (!bug_pid) {
+                    if (execvp(args[0], args) < 0)
+                        printf("fsh: command not found\n");
+                    exit(0);
+                }
                 exit(0);
             }
             // if it's the parent
             system(*commands);
             commands++;
 
-            wait(NULL);
+            // theoretically, for the process to run in background, the parent shouldn't wait for the child
+            // dunno
+            /* wait(NULL); */
         }
 
         // reset the stdout
