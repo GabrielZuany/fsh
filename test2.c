@@ -3,7 +3,7 @@
 #include<stdlib.h>
 #include<unistd.h>
 int main(){
-    sleep(10);
-    printf("Test finished\n");
+    sleep(6);
+    printf("Test2 finished\n");
     return 0;
 }
