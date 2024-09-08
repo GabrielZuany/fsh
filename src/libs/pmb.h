@@ -20,6 +20,8 @@ void kill_all_processes(ProcessMapBlock* pmb, int signum);
 
 void kill_one_process(ProcessMapBlock* pmb, pid_t pid, int signum);
 
+void remove_from_process_map_block(ProcessMapBlock* pmb, pid_t pid);
+
 void clear_process_map_block(ProcessMapBlock* pmb);
 
 void destroy_process_map_block(ProcessMapBlock* pmb);

@@ -36,6 +36,18 @@ void debug_process_map_block(ProcessMapBlock* pmb) {
     }
 }
 
+void remove_from_process_map_block(ProcessMapBlock* pmb, pid_t pid) {
+    if (pmb == NULL) {
+        return;
+    }
+    for (int i = 0; i < pmb->size; i++) {
+        if (pmb->pids[i] == pid) {
+            pmb->pids[i] = ALREADY_KILLED;
+            return;
+        }
+    }
+}
+
 void kill_one_process(ProcessMapBlock* pmb, pid_t pid, int signum) {
     if (pmb == NULL) {
         return;
@@ -58,7 +70,6 @@ void kill_all_processes(ProcessMapBlock* pmb, int signum) {
     int i = 0;
     for (i = 0; i < pmb->size; i++) {
         if (pmb->pids[i] == ALREADY_KILLED) {
-            printf("Process %d already killed\n", pmb->pids[i]);
             continue;
         }
         printf("Killing process %d :::: %s\n", pmb->pids[i], pmb->commands[i]);
