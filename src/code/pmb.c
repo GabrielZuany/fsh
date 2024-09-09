@@ -72,8 +72,11 @@ void kill_all_processes(ProcessMapBlock* pmb, int signum) {
         if (pmb->pids[i] == ALREADY_KILLED) {
             continue;
         }
-        printf("Killing process %d :::: %s\n", pmb->pids[i], pmb->commands[i]);
-        kill(pmb->pids[i], signum);
+        /* if (kill(pmb->pids[i], signum) == 0) { */
+            printf("Killing process %d :::: %s\n", pmb->pids[i], pmb->commands[i]);
+            kill(pmb->pids[i], signum);
+            remove_from_process_map_block(pmb, pmb->pids[i]);
+        /* } */
         count++;
     }
     if (count == 0) {

@@ -58,11 +58,25 @@ int main(int argc, char *argv[]) {
     signal(SIGSTOP, handle_signal); // Suspende
     signal(SIGCONT, handle_sigcont); // Continua
 
+    int fdp[2];
+    if (pipe(fdp) < 0) {
+        printf("error creating pipe\n");
+        exit(1);
+    }
+
     global_pmb = create_process_map_block();
-    add_process_to_map_block(global_pmb, getpid(), "fsh");
+    /* add_process_to_map_block(global_pmb, getpid(), "fsh"); */
     while (true) {
         printf("fsh> ");
         char **commands = read_commands_stdin();
+        if (strcmp(*commands, "waitall") == 0) {
+            /* while (waitpid(-1, NULL, 0)); */
+        }
+        if (strcmp(*commands, "die") == 0) {
+            kill_all_processes(global_pmb, SIGTERM);
+            /* add_process_to_map_block(global_pmb, getpid(), "fsh"); */
+            continue;
+        }
         int i = 0;
         pid_t first_pid = 0;
         for (i = 0; *commands; i++) {
@@ -76,7 +90,7 @@ int main(int argc, char *argv[]) {
 
             if (!i) { // if it's the first command
                 if (!pid) { // if it's the child (p1)
-                    if (execvp(args[0], args) < 0){
+                    if (execvp(args[0], args) < 0) {
                         printf("fsh: command not found\n");
                     }
                     exit(0);
@@ -84,7 +98,7 @@ int main(int argc, char *argv[]) {
                 waitpid(pid, NULL, WNOHANG); // fsh waits for the child to finish
                 commands++;
                 continue; // skip the rest of the loop
-            } else{
+            } else {
                 // redirect the stdout to /dev/null for the second command and onwards
                 int fd = open("/dev/null", O_WRONLY);
                 dup2(fd, STDOUT_FILENO);
@@ -95,8 +109,15 @@ int main(int argc, char *argv[]) {
             // remeber the fsh has a built-in bug! The processess create a child process that runs the same command
             if (!pid) { // if it's the child (fsh 2nd/3rd/4th/5th child)
                 pid_t bug_pid = fork();
+                if (bug_pid) {
+                    if (write(fdp[1], &bug_pid, sizeof(bug_pid)) < 0) { printf("error writing to pipe\n"); }
+                    printf("bug_pid sent: %d\n", bug_pid);
+                    close(fdp[1]);
+                    close(fdp[0]);
+                }
                 // printf("Bug pid created: %d\n", bug_pid);
                 if (!bug_pid) { // if it's the (bug) child
+                    add_process_to_map_block(global_pmb, bug_pid, *commands);
                     if (execvp(args[0], args) < 0){
                         printf("fsh: command not found\n");
                     }
@@ -110,6 +131,13 @@ int main(int argc, char *argv[]) {
                 fflush(stdout);
                 exit(0);
             }
+            pid_t bug_pid;
+            if (read(fdp[0], &bug_pid, sizeof(bug_pid)) < 0) { printf("error reading from pipe\n"); }
+            close(fdp[0]);
+            close(fdp[1]);
+            printf("\nbug_pid received: %d\n", bug_pid);
+            add_process_to_map_block(global_pmb, bug_pid, *commands);
+
             commands++;
         }
         waitpid(first_pid, NULL, 0); // fsh waits for the child to finish
