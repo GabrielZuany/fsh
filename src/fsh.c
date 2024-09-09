@@ -11,8 +11,6 @@
 ProcessMapBlock *global_pmb;
 
 void handle_signal(int signum) {
-    // Encontrar o processo pai (ou o processo que gerencia os processos filhos)
-    // e enviar o sinal a todos os processos filhos.
     printf("Signal %d received\n", signum);
     kill_all_processes(global_pmb, signum);
     exit(0);
@@ -66,40 +64,43 @@ int main(int argc, char *argv[]) {
     }
 
     global_pmb = create_process_map_block();
-    char **commands;
-    /* add_process_to_map_block(global_pmb, getpid(), "fsh"); */
+    char** commands = malloc(MAX_COMMANDS * sizeof(char *));
     while (true) {
         printf("fsh> ");
-        commands = read_commands_stdin();
+        read_commands_stdin(commands);
+
+        // shell language commands (waitall and die)
         if (strcmp(*commands, "waitall") == 0) {
             while (wait(NULL) > 0);
             continue;
         }
         if (strcmp(*commands, "die") == 0) {
             kill_all_processes(global_pmb, SIGTERM);
-            free(commands);
-            /* add_process_to_map_block(global_pmb, getpid(), "fsh"); */
             continue;
         }
+
         int i = 0;
         pid_t first_pid = 0;
         for (i = 0; *commands; i++) {
+            // create a child process for the first command (p1)
             pid_t pid = fork();
             if (!i) {  first_pid = pid; }
             if (pid){ add_process_to_map_block(global_pmb, pid, *commands); }
 
+            // allocate memory for the command and get the arguments
             char *command = malloc(strlen(*commands) + 1);
             strcpy(command, *commands);
             char **args = get_args_execvp(command);
 
-            if (!i) { // if it's the first command
-                if (!pid) { // if it's the child (p1)
+            if (!i) { // if it's the first command -> run in foreground mode
+                if (!pid) { // if it's the child (p1 is the child)
                     if (execvp(args[0], args) < 0) {
                         printf("fsh: command not found\n");
                     }
                     exit(0);
                 }
-                waitpid(pid, NULL, WNOHANG); // fsh waits for the child to finish
+                
+                waitpid(pid, NULL, WNOHANG); // fsh waits for the child (p1) to finish
                 commands++;
                 continue; // skip the rest of the loop
             } else {
@@ -119,6 +120,7 @@ int main(int argc, char *argv[]) {
                     close(fdp[1]);
                     close(fdp[0]);
                 }
+
                 // printf("Bug pid created: %d\n", bug_pid);
                 if (!bug_pid) { // if it's the (bug) child
                     add_process_to_map_block(global_pmb, bug_pid, *commands);
@@ -128,30 +130,31 @@ int main(int argc, char *argv[]) {
                     fflush(stdout);
                     exit(0);
                 }
-                // printf("Parent process %d waiting for bug process %d\n----\n", getpid(), bug_pid);
                 if (execvp(args[0], args) < 0){
                     printf("fsh: command not found\n");       
                 }
                 fflush(stdout);
                 exit(0);
             }
+
             pid_t bug_pid;
             if (read(fdp[0], &bug_pid, sizeof(bug_pid)) < 0) { printf("error reading from pipe\n"); }
             close(fdp[0]);
             close(fdp[1]);
             printf("\nbug_pid received: %d\n", bug_pid);
             add_process_to_map_block(global_pmb, bug_pid, *commands);
-
             commands++;
         }
         waitpid(first_pid, NULL, 0); // fsh waits for the child to finish
+
         // reset the stdout
         int fd = open("/dev/tty", O_WRONLY);
         dup2(fd, STDOUT_FILENO);
         close(fd);
-        
         fflush(stdout);
     }
+
+    // kill all processes and remove the process map block from memory
     kill_all_processes(global_pmb, SIGTERM);
     destroy_process_map_block(global_pmb);
     return 0;
