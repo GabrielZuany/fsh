@@ -70,7 +70,8 @@ int main(int argc, char *argv[]) {
         printf("fsh> ");
         char **commands = read_commands_stdin();
         if (strcmp(*commands, "waitall") == 0) {
-            /* while (waitpid(-1, NULL, 0)); */
+            while (wait(NULL) > 0);
+            continue;
         }
         if (strcmp(*commands, "die") == 0) {
             kill_all_processes(global_pmb, SIGTERM);
