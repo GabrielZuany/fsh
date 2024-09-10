@@ -30,6 +30,18 @@ void add_process_to_map_block(ProcessMapBlock* pmb, pid_t pid, char* command) {
     pmb->size++; 
 }
 
+void remove_from_process_map_block(ProcessMapBlock* pmb, pid_t pid) {
+    if (pmb == NULL) {
+        return;
+    }
+    for (int i = 0; i < pmb->size; i++) {
+        if (pmb->pids[i] == pid) {
+            pmb->pids[i] = ALREADY_KILLED;
+            return;
+        }
+    }
+}
+
 // Function to kill all processes tracked by the ProcessMapBlock
 void kill_all_processes(ProcessMapBlock* pmb, int signum) {
     if (pmb == NULL) { return; }

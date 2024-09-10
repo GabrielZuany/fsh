@@ -22,6 +22,12 @@ ProcessMapBlock* create_process_map_block();
 /// @return void
 void add_process_to_map_block(ProcessMapBlock* pmb, pid_t pid, char* command);
 
+/// @brief Remove a process from the ProcessMapBlock
+/// @param pmb ProcessMapBlock* pointer to the struct
+/// @param pid pid_t process id
+/// @return void
+void remove_from_process_map_block(ProcessMapBlock* pmb, pid_t pid);
+
 /// @brief Kill all processes in the ProcessMapBlock
 /// @param pmb ProcessMapBlock* pointer to the struct
 /// @param signum int signal number
